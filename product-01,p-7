@@ -1,0 +1,550 @@
+
+
+
+import math
+
+# =========================================================
+# PIPE FLOW CALCULATOR
+# =========================================================
+
+# Gravitational acceleration
+g = 9.81
+
+
+# =========================================================
+# FORMULA 1: Reynolds Number
+# Re = (rho * V * D) / mu
+# =========================================================
+
+def reynolds_number(rho, velocity, diameter, viscosity):
+    Re = (rho * velocity * diameter) / viscosity
+    return Re
+
+
+# =========================================================
+# FORMULA 2: Kinematic Viscosity
+# nu = mu / rho
+# =========================================================
+
+def kinematic_viscosity(viscosity, rho):
+    nu = viscosity / rho
+    return nu
+
+
+# =========================================================
+# FORMULA 3: Reynolds Number using Kinematic Viscosity
+# Re = (V * D) / nu
+# =========================================================
+
+def reynolds_using_kinematic(velocity, diameter, nu):
+    Re = (velocity * diameter) / nu
+    return Re
+
+
+# =========================================================
+# FORMULA 4: Relative Roughness
+# Relative Roughness = epsilon / D
+# =========================================================
+
+def relative_roughness(roughness, diameter):
+    rr = roughness / diameter
+    return rr
+
+
+# =========================================================
+# FORMULA 5: Laminar Darcy Friction Factor
+# f = 64 / Re
+# =========================================================
+
+def laminar_friction_factor(Re):
+    f = 64 / Re
+    return f
+
+
+# =========================================================
+# FORMULA 6: Colebrook Equation
+#
+# 1/sqrt(f) =
+# -2 log10[epsilon/(3.7D) + 2.51/(Re*sqrt(f))]
+#
+# The equation is solved by iteration.
+# =========================================================
+
+def turbulent_friction_factor(Re, roughness, diameter):
+
+    # Initial guess
+    f = 0.02
+
+    for i in range(100):
+
+        old_f = f
+
+        f = 1 / (
+            -2 * math.log10(
+                (roughness / (3.7 * diameter))
+                + (2.51 / (Re * math.sqrt(f)))
+            )
+        ) ** 2
+
+        # Stop when the value becomes stable
+        if abs(f - old_f) < 0.00000001:
+            break
+
+    return f
+
+
+# =========================================================
+# Darcy Friction Factor
+# Uses Formula 5 for laminar flow
+# Uses Formula 6 for turbulent flow
+# =========================================================
+
+def friction_factor(Re, roughness, diameter):
+
+    if Re <= 0:
+        print("Reynolds number must be greater than zero.")
+        return 0
+
+    if Re < 2300:
+
+        # Formula 5
+        f = laminar_friction_factor(Re)
+
+    else:
+
+        # Formula 6
+        f = turbulent_friction_factor(
+            Re,
+            roughness,
+            diameter
+        )
+
+    return f
+
+
+# =========================================================
+# FORMULA 7: Darcy-Weisbach Head Loss
+#
+# hf = f * (L/D) * (V^2 / 2g)
+# =========================================================
+
+def head_loss(f, length, diameter, velocity):
+
+    hf = (
+        f
+        * (length / diameter)
+        * (velocity ** 2 / (2 * g))
+    )
+
+    return hf
+
+
+# =========================================================
+# FORMULA 8: Pressure Drop
+#
+# Delta P = rho * g * hf
+# =========================================================
+
+def pressure_drop(rho, hf):
+
+    delta_p = rho * g * hf
+
+    return delta_p
+
+
+# =========================================================
+# FORMULA 9: Direct Pressure Drop
+#
+# Delta P = f * (L/D) * (rho * V^2 / 2)
+# =========================================================
+
+def direct_pressure_drop(
+        f, rho, length, diameter, velocity):
+
+    delta_p = (
+        f
+        * (length / diameter)
+        * (rho * velocity ** 2 / 2)
+    )
+
+    return delta_p
+
+
+# =========================================================
+# FORMULA 10: Pressure Conversion
+#
+# Pressure in kPa = Pressure in Pa / 1000
+# =========================================================
+
+def pascal_to_kpa(pressure_pa):
+
+    pressure_kpa = pressure_pa / 1000
+
+    return pressure_kpa
+
+
+# =========================================================
+# FLOW REGIME
+# =========================================================
+
+def flow_regime(Re):
+
+    if Re < 2300:
+        return "Laminar"
+
+    elif Re <= 4000:
+        return "Transitional"
+
+    else:
+        return "Turbulent"
+
+
+# =========================================================
+# CALCULATE ALL
+# =========================================================
+
+def calculate_all():
+
+    print("\n")
+    print("=" * 60)
+    print("                    INPUT DATA")
+    print("=" * 60)
+
+    rho = float(input("Enter fluid density (kg/m^3): "))
+    viscosity = float(input("Enter dynamic viscosity (Pa.s): "))
+    diameter = float(input("Enter pipe diameter (m): "))
+    length = float(input("Enter pipe length (m): "))
+    velocity = float(input("Enter fluid velocity (m/s): "))
+    roughness = float(input("Enter pipe roughness (m): "))
+
+    # -----------------------------------------------------
+    # Formula 1: Reynolds Number
+    # -----------------------------------------------------
+
+    Re = reynolds_number(
+        rho,
+        velocity,
+        diameter,
+        viscosity
+    )
+
+    # -----------------------------------------------------
+    # Formula 2: Kinematic Viscosity
+    # -----------------------------------------------------
+
+    nu = kinematic_viscosity(
+        viscosity,
+        rho
+    )
+
+    # -----------------------------------------------------
+    # Formula 3: Reynolds Number using Kinematic Viscosity
+    # -----------------------------------------------------
+
+    Re_check = reynolds_using_kinematic(
+        velocity,
+        diameter,
+        nu
+    )
+
+    # -----------------------------------------------------
+    # Flow Regime
+    # -----------------------------------------------------
+
+    regime = flow_regime(Re)
+
+    # -----------------------------------------------------
+    # Formula 4: Relative Roughness
+    # -----------------------------------------------------
+
+    rr = relative_roughness(
+        roughness,
+        diameter
+    )
+
+    # -----------------------------------------------------
+    # Formula 5 and 6:
+    # Darcy Friction Factor
+    # -----------------------------------------------------
+
+    f = friction_factor(
+        Re,
+        roughness,
+        diameter
+    )
+
+    # -----------------------------------------------------
+    # Formula 7: Head Loss
+    # -----------------------------------------------------
+
+    hf = head_loss(
+        f,
+        length,
+        diameter,
+        velocity
+    )
+
+    # -----------------------------------------------------
+    # Formula 8: Pressure Drop
+    # -----------------------------------------------------
+
+    delta_p = pressure_drop(
+        rho,
+        hf
+    )
+
+    # -----------------------------------------------------
+    # Formula 9: Direct Pressure Drop
+    # -----------------------------------------------------
+
+    direct_dp = direct_pressure_drop(
+        f,
+        rho,
+        length,
+        diameter,
+        velocity
+    )
+
+    # -----------------------------------------------------
+    # Formula 10: Convert Pa to kPa
+    # -----------------------------------------------------
+
+    delta_p_kpa = pascal_to_kpa(
+        delta_p
+    )
+
+    # =====================================================
+    # DISPLAY RESULTS
+    # =====================================================
+
+    print("\n")
+    print("=" * 60)
+    print("                  CALCULATION RESULTS")
+    print("=" * 60)
+
+    print(f"Reynolds Number              : {Re:.2f}")
+    print(f"Kinematic Viscosity          : {nu:.8f} m^2/s")
+    print(f"Reynolds Number using nu     : {Re_check:.2f}")
+    print(f"Flow Regime                  : {regime}")
+    print(f"Relative Roughness           : {rr:.6f}")
+    print(f"Darcy Friction Factor        : {f:.6f}")
+    print(f"Head Loss                    : {hf:.4f} m")
+    print(f"Pressure Drop                : {delta_p:.2f} Pa")
+    print(f"Pressure Drop                : {delta_p_kpa:.4f} kPa")
+    print(f"Direct Pressure Drop         : {direct_dp:.2f} Pa")
+
+    print("=" * 60)
+
+
+# =========================================================
+# MAIN MENU
+# =========================================================
+
+def main():
+
+    while True:
+
+        print("\n")
+        print("=" * 60)
+        print("                 PIPE FLOW CALCULATOR")
+        print("=" * 60)
+
+        print("1. Calculate Reynolds Number")
+        print("2. Calculate Darcy Friction Factor")
+        print("3. Calculate Head Loss")
+        print("4. Calculate Pressure Drop")
+        print("5. Calculate All")
+        print("6. Exit")
+
+        print("=" * 60)
+
+        choice = input("Enter your choice (1-6): ")
+
+        # =================================================
+        # OPTION 1: REYNOLDS NUMBER
+        # =================================================
+
+        if choice == "1":
+
+            print("\n--- REYNOLDS NUMBER ---")
+
+            rho = float(
+                input("Enter fluid density (kg/m^3): ")
+            )
+
+            velocity = float(
+                input("Enter fluid velocity (m/s): ")
+            )
+
+            diameter = float(
+                input("Enter pipe diameter (m): ")
+            )
+
+            viscosity = float(
+                input("Enter dynamic viscosity (Pa.s): ")
+            )
+
+            # Formula 1
+            Re = reynolds_number(
+                rho,
+                velocity,
+                diameter,
+                viscosity
+            )
+
+            print("\nReynolds Number =", round(Re, 2))
+            print("Flow Regime =", flow_regime(Re))
+
+
+        # =================================================
+        # OPTION 2: FRICTION FACTOR
+        # =================================================
+
+        elif choice == "2":
+
+            print("\n--- DARCY FRICTION FACTOR ---")
+
+            Re = float(
+                input("Enter Reynolds Number: ")
+            )
+
+            diameter = float(
+                input("Enter pipe diameter (m): ")
+            )
+
+            roughness = float(
+                input("Enter pipe roughness (m): ")
+            )
+
+            # Formula 5 or 6
+            f = friction_factor(
+                Re,
+                roughness,
+                diameter
+            )
+
+            print("\nDarcy Friction Factor =", round(f, 6))
+
+
+        # =================================================
+        # OPTION 3: HEAD LOSS
+        # =================================================
+
+        elif choice == "3":
+
+            print("\n--- HEAD LOSS ---")
+
+            f = float(
+                input("Enter Darcy friction factor: ")
+            )
+
+            length = float(
+                input("Enter pipe length (m): ")
+            )
+
+            diameter = float(
+                input("Enter pipe diameter (m): ")
+            )
+
+            velocity = float(
+                input("Enter fluid velocity (m/s): ")
+            )
+
+            # Formula 7
+            hf = head_loss(
+                f,
+                length,
+                diameter,
+                velocity
+            )
+
+            print("\nHead Loss =", round(hf, 4), "m")
+
+
+        # =================================================
+        # OPTION 4: PRESSURE DROP
+        # =================================================
+
+        elif choice == "4":
+
+            print("\n--- PRESSURE DROP ---")
+
+            rho = float(
+                input("Enter fluid density (kg/m^3): ")
+            )
+
+            f = float(
+                input("Enter Darcy friction factor: ")
+            )
+
+            length = float(
+                input("Enter pipe length (m): ")
+            )
+
+            diameter = float(
+                input("Enter pipe diameter (m): ")
+            )
+
+            velocity = float(
+                input("Enter fluid velocity (m/s): ")
+            )
+
+            # Formula 7
+            hf = head_loss(
+                f,
+                length,
+                diameter,
+                velocity
+            )
+
+            # Formula 8
+            delta_p = pressure_drop(
+                rho,
+                hf
+            )
+
+            # Formula 10
+            delta_p_kpa = pascal_to_kpa(
+                delta_p
+            )
+
+            print("\nHead Loss =", round(hf, 4), "m")
+            print("Pressure Drop =", round(delta_p, 2), "Pa")
+            print("Pressure Drop =", round(delta_p_kpa, 4), "kPa")
+
+
+        # =================================================
+        # OPTION 5: CALCULATE ALL
+        # =================================================
+
+        elif choice == "5":
+
+            calculate_all()
+
+
+        # =================================================
+        # OPTION 6: EXIT
+        # =================================================
+
+        elif choice == "6":
+
+            print("\nThank you for using the Pipe Flow Calculator!")
+            break
+
+
+        # =================================================
+        # INVALID CHOICE
+        # =================================================
+
+        else:
+
+            print("\nInvalid choice!")
+            print("Please enter a number from 1 to 6.")
+
+
+# =========================================================
+# START PROGRAM
+# =========================================================
+
+if __name__ == "__main__":
+    main()
